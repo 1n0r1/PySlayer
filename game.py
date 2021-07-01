@@ -27,7 +27,7 @@ class MainCharacter(pygame.sprite.Sprite):
         colorImage.fill((0,0,0))
         self.image.blit(colorImage, (0,0), special_flags = pygame.BLEND_MULT)
 
-        self.rect.center = (250,250)
+        self.rect.center = (683,384)
 
 class Bullet(pygame.sprite.Sprite):
     facing = [0,0]
@@ -175,6 +175,16 @@ def shoot():
 
 def refresh():
     screen.fill((255, 255, 255))
+    d1 = 683 - main.rect.center[0] 
+    d2 = 384 - main.rect.center[1] 
+    for bullet in bullet_sprites:
+        bullet.rect = bullet.rect.move(d1,d2)
+    for wall in wall_sprites:
+        wall.rect = wall.rect.move(d1,d2)
+    for e in enemy_sprites:
+        e.rect = e.rect.move(d1,d2)
+
+    main.rect = main.rect.move(d1,d2)
     bullet_sprites.draw(screen)
     wall_sprites.draw(screen)
     main_sprite.draw(screen)
@@ -187,7 +197,7 @@ main = MainCharacter()
 main_sprite.add(main)
 
 w1 = Wall([400,400])
-w2 = Wall([450,400])
+w2 = Wall([500,400])
 wall_sprites.add(w1)
 wall_sprites.add(w2)
 
