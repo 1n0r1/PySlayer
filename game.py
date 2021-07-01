@@ -14,6 +14,7 @@ last_shoot = pygame.time.get_ticks()
 main_sprite = pygame.sprite.Group()
 wall_sprites = pygame.sprite.Group()
 bullet_sprites = pygame.sprite.Group()
+enemy_sprites = pygame.sprite.Group()
 
 
 class MainCharacter(pygame.sprite.Sprite):
@@ -21,6 +22,11 @@ class MainCharacter(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load("mc.png")
         self.rect = self.image.get_rect()
+
+        colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
+        colorImage.fill((0,0,0))
+        self.image.blit(colorImage, (0,0), special_flags = pygame.BLEND_MULT)
+
         self.rect.center = (250,250)
 
 class Bullet(pygame.sprite.Sprite):
@@ -30,9 +36,11 @@ class Bullet(pygame.sprite.Sprite):
         self.image = pygame.image.load("bullet.png")
         self.image = pygame.transform.scale(self.image, (25, 25))
         self.rect = self.image.get_rect()
+
         colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
         colorImage.fill(color)
         self.image.blit(colorImage, (0,0), special_flags = pygame.BLEND_MULT)
+
         self.rect.center = pos
         self.facing = face
     def update(self):
@@ -55,22 +63,59 @@ class Enemy1(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load("mc.png")
         self.rect = self.image.get_rect()
+        
+        colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
+        colorImage.fill((120,120,120))
+        self.image.blit(colorImage, (0,0), special_flags = pygame.BLEND_MULT)
+
         self.rect.center = (300,300)
+    def update(self):
+        a = main.rect.center[0] - self.rect.center[0]
+        b = main.rect.center[1] - self.rect.center[1]
+        
+        if ((a**2 + b**2) != 0):
+            aa = a*3 / (a**2 + b**2)**(1/2)
+            bb = b*3 / (a**2 + b**2)**(1/2)
+
+            inc = 0.0
+            if (aa > 0):
+                inc = 1
+            if (aa < 0):
+                inc = -1
+            for i in range(abs(int(aa))):
+                prepos = self.rect.center
+                self.rect = self.rect.move([inc,0])
+                for wall in wall_sprites:
+                    if (self.rect.colliderect(wall.rect)):
+                        self.rect.center = prepos
+
+            inc = 0.0
+            if (bb > 0):
+                inc = 1
+            if (bb < 0):
+                inc = -1
+            for i in range(abs(int(bb))):
+                prepos = self.rect.center
+                self.rect = self.rect.move([0,inc])
+                for wall in wall_sprites:
+                    if (self.rect.colliderect(wall.rect)):
+                        self.rect.center = prepos
+
 
 def handle_movement():
     key = pygame.key.get_pressed()
     if (key[pygame.K_a]):
         if (speed[0] > -10):
-            speed[0] -= 1
+            speed[0] -= 1.5
     if (key[pygame.K_d]):
         if (speed[0] < 10):
-            speed[0] += 1
+            speed[0] += 1.5
     if (key[pygame.K_w]):
         if (speed[1] > -10):
-            speed[1] -= 1
+            speed[1] -= 1.5
     if (key[pygame.K_s]):
         if (speed[1] < 10):
-            speed[1] += 1
+            speed[1] += 1.5
     if (speed[0] > 0):
         speed[0] -= 0.5
     elif (speed[0] < 0):
@@ -133,6 +178,7 @@ def refresh():
     bullet_sprites.draw(screen)
     wall_sprites.draw(screen)
     main_sprite.draw(screen)
+    enemy_sprites.draw(screen)
     pygame.display.flip()
 
 
@@ -145,6 +191,9 @@ w2 = Wall([450,400])
 wall_sprites.add(w1)
 wall_sprites.add(w2)
 
+e1 = Enemy1()
+enemy_sprites.add(e1)
+
 while 1:
     pygame.time.Clock().tick(120)
 
@@ -155,3 +204,4 @@ while 1:
     handle_event()
     handle_movement()
     bullet_sprites.update()
+    enemy_sprites.update()
