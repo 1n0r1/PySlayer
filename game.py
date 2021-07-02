@@ -25,7 +25,7 @@ class MainCharacter(pygame.sprite.Sprite):
 
         colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
         colorImage.fill((0,0,0))
-        self.image.blit(colorImage, (0,0), special_flags = pygame.BLEND_MULT)
+        self.image.blit(colorImage, (0,0))
 
         self.rect.center = (683,384)
 
@@ -48,6 +48,10 @@ class Bullet(pygame.sprite.Sprite):
         for wall in wall_sprites:
             if (self.rect.colliderect(wall.rect)):
                 self.kill()
+        for e in enemy_sprites:
+            if (self.rect.colliderect(e.rect)):
+                e.hit(1)
+                self.kill()
 
 class Wall(pygame.sprite.Sprite):
     facing = [0,0]
@@ -59,14 +63,17 @@ class Wall(pygame.sprite.Sprite):
         self.rect.center = pos
 
 class Enemy1(pygame.sprite.Sprite):
+    health = 0
+    last_hit = 0
     def __init__(self):
+        self.health = 10
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load("mc.png")
         self.rect = self.image.get_rect()
         
         colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
-        colorImage.fill((120,120,120))
-        self.image.blit(colorImage, (0,0), special_flags = pygame.BLEND_MULT)
+        colorImage.fill((150,150,150))
+        self.image.blit(colorImage, (0,0))
 
         self.rect.center = (300,300)
     def update(self):
@@ -100,7 +107,20 @@ class Enemy1(pygame.sprite.Sprite):
                 for wall in wall_sprites:
                     if (self.rect.colliderect(wall.rect)):
                         self.rect.center = prepos
+            t = pygame.time.get_ticks()
+            if (t - self.last_hit >= 50):
+                colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
+                colorImage.fill((150,150,150))
+                self.image.blit(colorImage, (0,0))
 
+    def hit(self, a):
+        self.last_hit = pygame.time.get_ticks()
+        self.health -= a
+        colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
+        colorImage.fill((255,0,0))
+        self.image.blit(colorImage, (0,0))
+        if (self.health <= 0):
+            self.kill()
 
 def handle_movement():
     key = pygame.key.get_pressed()
@@ -169,7 +189,7 @@ def shoot():
             f =[0.0,0.0]
             f[0] = face[0]*20 / (face[0]**2 + face[1]**2)**(1/2)
             f[1] = face[1]*20 / (face[0]**2 + face[1]**2)**(1/2)
-            bullet = Bullet(pygame.Color(255,0,0,255), main.rect.center, f)
+            bullet = Bullet(pygame.Color(0,0,0,255), main.rect.center, f)
             bullet_sprites.add(bullet)
             last_shoot = pygame.time.get_ticks()
 
@@ -177,6 +197,8 @@ def refresh():
     screen.fill((255, 255, 255))
     d1 = 683 - main.rect.center[0] 
     d2 = 384 - main.rect.center[1] 
+    d1 /= 3
+    d2/= 3
     for bullet in bullet_sprites:
         bullet.rect = bullet.rect.move(d1,d2)
     for wall in wall_sprites:
