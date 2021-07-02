@@ -16,7 +16,6 @@ wall_sprites = pygame.sprite.Group()
 bullet_sprites = pygame.sprite.Group()
 enemy_sprites = pygame.sprite.Group()
 
-
 class MainCharacter(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
@@ -181,7 +180,7 @@ def handle_event():
 def shoot():
     t = pygame.time.get_ticks()
     global last_shoot
-    if (t - last_shoot > 100):
+    if (t - last_shoot > 200):
         face = [0.0,0.0]
         face[0] = pygame.mouse.get_pos()[0] - main.rect.center[0]
         face[1] = pygame.mouse.get_pos()[1] - main.rect.center[1]
@@ -197,8 +196,8 @@ def refresh():
     screen.fill((255, 255, 255))
     d1 = 683 - main.rect.center[0] 
     d2 = 384 - main.rect.center[1] 
-    d1 /= 3
-    d2/= 3
+    d1 /= 4
+    d2/= 4
     for bullet in bullet_sprites:
         bullet.rect = bullet.rect.move(d1,d2)
     for wall in wall_sprites:
@@ -213,15 +212,24 @@ def refresh():
     enemy_sprites.draw(screen)
     pygame.display.flip()
 
-
+def generate_room(a,b,c,d):
+    for i in range(a, c+1):
+        w = Wall([i*50,b*50])
+        wall_sprites.add(w)
+    for i in range(a, c+1):
+        w = Wall([i*50,d*50])
+        wall_sprites.add(w)
+    for i in range(b, d+1):
+        w = Wall([a*50,i*50])
+        wall_sprites.add(w)
+    for i in range(b, d+1):
+        w = Wall([c*50,i*50])
+        wall_sprites.add(w)
 
 main = MainCharacter()
 main_sprite.add(main)
 
-w1 = Wall([400,400])
-w2 = Wall([500,400])
-wall_sprites.add(w1)
-wall_sprites.add(w2)
+generate_room(1,1,25,25)
 
 e1 = Enemy1()
 enemy_sprites.add(e1)
