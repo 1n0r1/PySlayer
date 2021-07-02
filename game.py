@@ -1,4 +1,4 @@
-import sys, pygame, random
+import sys, pygame, random, math
 
 from pygame import mouse
 from pygame.constants import BUTTON_LEFT, MOUSEBUTTONDOWN
@@ -10,11 +10,19 @@ screen = pygame.display.set_mode(size)
 speed = [0,0]
 shooting = False
 last_shoot = pygame.time.get_ticks()
+last_slash = pygame.time.get_ticks()
 
 main_sprite = pygame.sprite.Group()
 wall_sprites = pygame.sprite.Group()
 bullet_sprites = pygame.sprite.Group()
 enemy_sprites = pygame.sprite.Group()
+sword_sprite = pygame.sprite.Group()
+
+def rot_center(image, rect, angle):
+    """rotate an image while keeping its center"""
+    rot_image = pygame.transform.rotate(image, angle)
+    rot_rect = rot_image.get_rect(center=rect.center)
+    return rot_image,rot_rect
 
 class MainCharacter(pygame.sprite.Sprite):
     def __init__(self):
@@ -53,7 +61,6 @@ class Bullet(pygame.sprite.Sprite):
                 self.kill()
 
 class Wall(pygame.sprite.Sprite):
-    facing = [0,0]
     def __init__(self, pos):
         super().__init__() 
         self.image = pygame.image.load("wall.png")
@@ -64,7 +71,7 @@ class Wall(pygame.sprite.Sprite):
 class Enemy1(pygame.sprite.Sprite):
     health = 0
     last_hit = 0
-    def __init__(self):
+    def __init__(self, pos):
         self.health = 10
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load("mc.png")
@@ -74,7 +81,7 @@ class Enemy1(pygame.sprite.Sprite):
         colorImage.fill((150,150,150))
         self.image.blit(colorImage, (0,0))
 
-        self.rect.center = (300,300)
+        self.rect.center = pos
     def update(self):
         a = main.rect.center[0] - self.rect.center[0]
         b = main.rect.center[1] - self.rect.center[1]
@@ -119,6 +126,31 @@ class Enemy1(pygame.sprite.Sprite):
         colorImage.fill((255,0,0))
         self.image.blit(colorImage, (0,0))
         if (self.health <= 0):
+            self.kill()
+
+class Sword(pygame.sprite.Sprite):
+    original_image = pygame.image.load("Sword.png")
+    original_image = pygame.transform.scale(original_image,[25,100])
+    original_rect = original_image.get_rect()
+    angle = 0.0
+    end_angle = 0.0
+    def __init__(self, pos, a):
+        super().__init__() 
+        self.surf = self.original_image
+        self.rect = self.surf.get_rect()
+
+        colorImage = pygame.Surface(self.surf.get_size()).convert_alpha()
+        colorImage.fill((0,0,0))
+        self.surf.blit(colorImage, (0,0), special_flags = pygame.BLEND_MULT)
+        self.angle = a
+        self.rect.center = pos
+        self.original_rect.center = pos
+        self.end_angle = a + 160
+    def update(self, pos):
+        self.angle += 10
+        self.surf, self.rect = rot_center(self.original_image, self.original_rect, self.angle - 90)
+        self.rect.center = [pos[0] + 50.00*math.cos(self.angle/180*math.pi), pos[1] + 50.00*math.sin(-self.angle/180*math.pi)]
+        if (self.angle >= self.end_angle):
             self.kill()
 
 def handle_movement():
@@ -168,6 +200,18 @@ def handle_movement():
             if (main.rect.colliderect(wall.rect)):
                 main.rect.center = prepos
 
+def slash():
+    t = pygame.time.get_ticks()
+    global last_slash
+    if (t - last_slash > 500):
+        k = 0.0
+        if (pygame.mouse.get_pos()[0] - main.rect.center[0] != 0):
+            k =- math.atan2(pygame.mouse.get_pos()[1] - main.rect.center[1], pygame.mouse.get_pos()[0] - main.rect.center[0])/math.pi*180
+        k = k - 80
+        s = Sword(main.rect.center, k)
+        sword_sprite.add(s)
+        last_slash = pygame.time.get_ticks()
+
 def handle_event():
     for event in pygame.event.get():
         global shooting
@@ -176,6 +220,8 @@ def handle_event():
             shooting = True
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             shooting = False
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+            slash()
 
 def shoot():
     t = pygame.time.get_ticks()
@@ -198,16 +244,23 @@ def refresh():
     d2 = 384 - main.rect.center[1] 
     d1 /= 4
     d2/= 4
+
     for bullet in bullet_sprites:
         bullet.rect = bullet.rect.move(d1,d2)
     for wall in wall_sprites:
         wall.rect = wall.rect.move(d1,d2)
     for e in enemy_sprites:
         e.rect = e.rect.move(d1,d2)
+    for s in sword_sprite:
+        s.rect = s.rect.move(d1,d2)
 
     main.rect = main.rect.move(d1,d2)
+
     bullet_sprites.draw(screen)
     wall_sprites.draw(screen)
+    
+    for s in sword_sprite:
+        screen.blit(s.surf, s.rect)
     main_sprite.draw(screen)
     enemy_sprites.draw(screen)
     pygame.display.flip()
@@ -229,10 +282,13 @@ def generate_room(a,b,c,d):
 main = MainCharacter()
 main_sprite.add(main)
 
-generate_room(1,1,25,25)
+generate_room(0,0,25,25)
 
-e1 = Enemy1()
+e1 = Enemy1([300,300])
 enemy_sprites.add(e1)
+
+e2 = Enemy1([500,500])
+enemy_sprites.add(e2)
 
 while 1:
     pygame.time.Clock().tick(120)
@@ -245,3 +301,4 @@ while 1:
     handle_movement()
     bullet_sprites.update()
     enemy_sprites.update()
+    sword_sprite.update(main.rect.center)
