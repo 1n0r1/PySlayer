@@ -101,6 +101,9 @@ class Enemy1(pygame.sprite.Sprite):
                 for wall in wall_sprites:
                     if (self.rect.colliderect(wall.rect)):
                         self.rect.center = prepos
+                for e in enemy_sprites:
+                    if (e != self and self.rect.colliderect(e.rect)):
+                        self.rect.center = prepos
 
             inc = 0.0
             if (bb > 0):
@@ -113,6 +116,10 @@ class Enemy1(pygame.sprite.Sprite):
                 for wall in wall_sprites:
                     if (self.rect.colliderect(wall.rect)):
                         self.rect.center = prepos
+                for e in enemy_sprites:
+                    if (e != self and self.rect.colliderect(e.rect)):
+                        self.rect.center = prepos
+
             t = pygame.time.get_ticks()
             if (t - self.last_hit >= 50):
                 colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
@@ -283,6 +290,10 @@ main = MainCharacter()
 main_sprite.add(main)
 
 generate_room(0,0,25,25)
+w1 = Wall([600,600])
+w2 = Wall([650,600])
+wall_sprites.add(w1)
+wall_sprites.add(w2)
 
 e1 = Enemy1([300,300])
 enemy_sprites.add(e1)
