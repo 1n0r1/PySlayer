@@ -67,6 +67,31 @@ class Wall(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = pos
 
+class Sword(pygame.sprite.Sprite):
+    original_image = pygame.image.load("Sword.png")
+    original_image = pygame.transform.scale(original_image,[25,100])
+    original_rect = original_image.get_rect()
+    angle = 0.0
+    end_angle = 0.0
+    def __init__(self, pos, a):
+        super().__init__() 
+        self.surf = self.original_image
+        self.rect = self.surf.get_rect()
+
+        colorImage = pygame.Surface(self.surf.get_size()).convert_alpha()
+        colorImage.fill((0,0,0))
+        self.surf.blit(colorImage, (0,0), special_flags = pygame.BLEND_MULT)
+        self.angle = a
+        self.rect.center = pos
+        self.original_rect.center = pos
+        self.end_angle = a + 160
+    def update(self, pos):
+        self.angle += 10
+        self.surf, self.rect = rot_center(self.original_image, self.original_rect, self.angle - 90)
+        self.rect.center = [pos[0] + 50.00*math.cos(self.angle/180*math.pi), pos[1] + 50.00*math.sin(-self.angle/180*math.pi)]
+        if (self.angle >= self.end_angle):
+            self.kill()
+
 class Enemy1(pygame.sprite.Sprite):
     health = 0
     last_hit = 0
@@ -103,7 +128,8 @@ class Enemy1(pygame.sprite.Sprite):
                 for e in enemy_sprites:
                     if (e != self and self.rect.colliderect(e.rect)):
                         self.rect.center = prepos
-
+                if (self.rect.colliderect(main.rect)):
+                    self.rect.center = prepos
             inc = 0.0
             if (bb > 0):
                 inc = 1
@@ -118,7 +144,8 @@ class Enemy1(pygame.sprite.Sprite):
                 for e in enemy_sprites:
                     if (e != self and self.rect.colliderect(e.rect)):
                         self.rect.center = prepos
-
+                if (self.rect.colliderect(main.rect)):
+                    self.rect.center = prepos
             t = pygame.time.get_ticks()
             if (t - self.last_hit >= 50):
                 colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
@@ -134,30 +161,50 @@ class Enemy1(pygame.sprite.Sprite):
         if (self.health <= 0):
             self.kill()
 
-class Sword(pygame.sprite.Sprite):
-    original_image = pygame.image.load("Sword.png")
-    original_image = pygame.transform.scale(original_image,[25,100])
-    original_rect = original_image.get_rect()
-    angle = 0.0
-    end_angle = 0.0
-    def __init__(self, pos, a):
-        super().__init__() 
-        self.surf = self.original_image
-        self.rect = self.surf.get_rect()
+def slash():
+    t = pygame.time.get_ticks()
+    global last_slash
+    if (t - last_slash > 500):
+        k = 0.0
+        angle = -math.atan2(pygame.mouse.get_pos()[1] - main.rect.center[1], pygame.mouse.get_pos()[0] - main.rect.center[0])/math.pi*180
+        if (pygame.mouse.get_pos()[0] - main.rect.center[0] != 0):
+            k = angle
+        k = k - 80
+        s = Sword(main.rect.center, k)
+        sword_sprite.add(s)
+        last_slash = pygame.time.get_ticks()
+        for e in enemy_sprites:
+            dis = [e.rect.center[1] - main.rect.center[1], e.rect.center[0] - main.rect.center[0]]
+            angle_enemy = -math.atan2(dis[0], dis[1])/math.pi*180
+            dist = (dis[0]**2 + dis[1]**2)**(1/2)
+            if abs(angle_enemy -80 - k ) <80 and dist<150:
+                e.hit(3)
+                
+def shoot():
+    t = pygame.time.get_ticks()
+    global last_shoot
+    if (t - last_shoot > 200):
+        face = [0.0,0.0]
+        face[0] = pygame.mouse.get_pos()[0] - main.rect.center[0]
+        face[1] = pygame.mouse.get_pos()[1] - main.rect.center[1]
+        if ((face[0]**2 + face[1]**2) != 0):
+            f =[0.0,0.0]
+            f[0] = face[0]*20 / (face[0]**2 + face[1]**2)**(1/2)
+            f[1] = face[1]*20 / (face[0]**2 + face[1]**2)**(1/2)
+            bullet = Bullet(pygame.Color(0,0,0,255), main.rect.center, f)
+            bullet_sprites.add(bullet)
+            last_shoot = pygame.time.get_ticks()
 
-        colorImage = pygame.Surface(self.surf.get_size()).convert_alpha()
-        colorImage.fill((0,0,0))
-        self.surf.blit(colorImage, (0,0), special_flags = pygame.BLEND_MULT)
-        self.angle = a
-        self.rect.center = pos
-        self.original_rect.center = pos
-        self.end_angle = a + 160
-    def update(self, pos):
-        self.angle += 10
-        self.surf, self.rect = rot_center(self.original_image, self.original_rect, self.angle - 90)
-        self.rect.center = [pos[0] + 50.00*math.cos(self.angle/180*math.pi), pos[1] + 50.00*math.sin(-self.angle/180*math.pi)]
-        if (self.angle >= self.end_angle):
-            self.kill()
+def handle_event():
+    for event in pygame.event.get():
+        global shooting
+        if event.type == pygame.QUIT: sys.exit()
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            shooting = True
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            shooting = False
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+            slash()
 
 def handle_movement():
     key = pygame.key.get_pressed()
@@ -205,50 +252,6 @@ def handle_movement():
         for wall in wall_sprites:
             if (main.rect.colliderect(wall.rect)):
                 main.rect.center = prepos
-
-def slash():
-    t = pygame.time.get_ticks()
-    global last_slash
-    if (t - last_slash > 500):
-        k = 0.0
-        angle = -math.atan2(pygame.mouse.get_pos()[1] - main.rect.center[1], pygame.mouse.get_pos()[0] - main.rect.center[0])/math.pi*180
-        if (pygame.mouse.get_pos()[0] - main.rect.center[0] != 0):
-            k = angle
-        k = k - 80
-        s = Sword(main.rect.center, k)
-        sword_sprite.add(s)
-        last_slash = pygame.time.get_ticks()
-        for e in enemy_sprites:
-            dis = [e.rect.center[1] - main.rect.center[1], e.rect.center[0] - main.rect.center[0]]
-            angle_enemy = -math.atan2(dis[0], dis[1])/math.pi*180
-            dist = (dis[0]**2 + dis[1]**2)**(1/2)
-            if abs(angle_enemy -80 - k ) <80 and dist<150:
-                e.hit(3)
-def handle_event():
-    for event in pygame.event.get():
-        global shooting
-        if event.type == pygame.QUIT: sys.exit()
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            shooting = True
-        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            shooting = False
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
-            slash()
-
-def shoot():
-    t = pygame.time.get_ticks()
-    global last_shoot
-    if (t - last_shoot > 200):
-        face = [0.0,0.0]
-        face[0] = pygame.mouse.get_pos()[0] - main.rect.center[0]
-        face[1] = pygame.mouse.get_pos()[1] - main.rect.center[1]
-        if ((face[0]**2 + face[1]**2) != 0):
-            f =[0.0,0.0]
-            f[0] = face[0]*20 / (face[0]**2 + face[1]**2)**(1/2)
-            f[1] = face[1]*20 / (face[0]**2 + face[1]**2)**(1/2)
-            bullet = Bullet(pygame.Color(0,0,0,255), main.rect.center, f)
-            bullet_sprites.add(bullet)
-            last_shoot = pygame.time.get_ticks()
 
 def refresh():
     screen.fill((255, 255, 255))
