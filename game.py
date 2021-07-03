@@ -19,7 +19,6 @@ enemy_sprites = pygame.sprite.Group()
 sword_sprite = pygame.sprite.Group()
 
 def rot_center(image, rect, angle):
-    """rotate an image while keeping its center"""
     rot_image = pygame.transform.rotate(image, angle)
     rot_rect = rot_image.get_rect(center=rect.center)
     return rot_image,rot_rect
@@ -212,13 +211,19 @@ def slash():
     global last_slash
     if (t - last_slash > 500):
         k = 0.0
+        angle = -math.atan2(pygame.mouse.get_pos()[1] - main.rect.center[1], pygame.mouse.get_pos()[0] - main.rect.center[0])/math.pi*180
         if (pygame.mouse.get_pos()[0] - main.rect.center[0] != 0):
-            k =- math.atan2(pygame.mouse.get_pos()[1] - main.rect.center[1], pygame.mouse.get_pos()[0] - main.rect.center[0])/math.pi*180
+            k = angle
         k = k - 80
         s = Sword(main.rect.center, k)
         sword_sprite.add(s)
         last_slash = pygame.time.get_ticks()
-
+        for e in enemy_sprites:
+            dis = [e.rect.center[1] - main.rect.center[1], e.rect.center[0] - main.rect.center[0]]
+            angle_enemy = -math.atan2(dis[0], dis[1])/math.pi*180
+            dist = (dis[0]**2 + dis[1]**2)**(1/2)
+            if abs(angle_enemy -80 - k ) <80 and dist<150:
+                e.hit(3)
 def handle_event():
     for event in pygame.event.get():
         global shooting
