@@ -106,6 +106,44 @@ class Enemy1(pygame.sprite.Sprite):
         self.image.blit(colorImage, (0,0))
 
         self.rect.center = pos
+    
+    def move(self, aa, bb):
+
+        inc = 0.0
+        if (aa > 0):
+            inc = 1
+        if (aa < 0):
+            inc = -1
+        for i in range(abs(int(aa))):
+            prepos = self.rect.center
+            self.rect = self.rect.move([inc,0])
+            for wall in wall_sprites:
+                if (self.rect.colliderect(wall.rect)):
+                    self.rect.center = prepos
+            for e in enemy_sprites:
+                if (e != self and self.rect.colliderect(e.rect)):
+                    self.rect.center = prepos
+                    e.move(inc,0)
+            if (self.rect.colliderect(main.rect)):
+                self.rect.center = prepos
+        inc = 0.0
+        if (bb > 0):
+            inc = 1
+        if (bb < 0):
+            inc = -1
+        for i in range(abs(int(bb))):
+            prepos = self.rect.center
+            self.rect = self.rect.move([0,inc])
+            for wall in wall_sprites:
+                if (self.rect.colliderect(wall.rect)):
+                    self.rect.center = prepos
+            for e in enemy_sprites:
+                if (e != self and self.rect.colliderect(e.rect)):
+                    self.rect.center = prepos
+                    e.move(0,inc)
+            if (self.rect.colliderect(main.rect)):
+                self.rect.center = prepos
+    
     def update(self):
         a = main.rect.center[0] - self.rect.center[0]
         b = main.rect.center[1] - self.rect.center[1]
@@ -113,39 +151,8 @@ class Enemy1(pygame.sprite.Sprite):
         if ((a**2 + b**2) != 0):
             aa = a*3 / (a**2 + b**2)**(1/2)
             bb = b*3 / (a**2 + b**2)**(1/2)
+            self.move(aa,bb)
 
-            inc = 0.0
-            if (aa > 0):
-                inc = 1
-            if (aa < 0):
-                inc = -1
-            for i in range(abs(int(aa))):
-                prepos = self.rect.center
-                self.rect = self.rect.move([inc,0])
-                for wall in wall_sprites:
-                    if (self.rect.colliderect(wall.rect)):
-                        self.rect.center = prepos
-                for e in enemy_sprites:
-                    if (e != self and self.rect.colliderect(e.rect)):
-                        self.rect.center = prepos
-                if (self.rect.colliderect(main.rect)):
-                    self.rect.center = prepos
-            inc = 0.0
-            if (bb > 0):
-                inc = 1
-            if (bb < 0):
-                inc = -1
-            for i in range(abs(int(bb))):
-                prepos = self.rect.center
-                self.rect = self.rect.move([0,inc])
-                for wall in wall_sprites:
-                    if (self.rect.colliderect(wall.rect)):
-                        self.rect.center = prepos
-                for e in enemy_sprites:
-                    if (e != self and self.rect.colliderect(e.rect)):
-                        self.rect.center = prepos
-                if (self.rect.colliderect(main.rect)):
-                    self.rect.center = prepos
             t = pygame.time.get_ticks()
             if (t - self.last_hit >= 50):
                 colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
@@ -240,6 +247,10 @@ def handle_movement():
         for wall in wall_sprites:
             if (main.rect.colliderect(wall.rect)):
                 main.rect.center = prepos
+        for e in enemy_sprites:
+            if (main.rect.colliderect(e.rect)):
+                main.rect.center = prepos
+                e.move(speed[0],0)
 
     inc = 0.0
     if (speed[1] > 0):
@@ -252,13 +263,17 @@ def handle_movement():
         for wall in wall_sprites:
             if (main.rect.colliderect(wall.rect)):
                 main.rect.center = prepos
+        for e in enemy_sprites:
+            if (main.rect.colliderect(e.rect)):
+                main.rect.center = prepos
+                e.move(0,speed[1])
 
 def refresh():
     screen.fill((255, 255, 255))
     d1 = 683 - main.rect.center[0] 
     d2 = 384 - main.rect.center[1] 
-    d1 /= 4
-    d2/= 4
+    d1 /= 5
+    d2/= 5
 
     for bullet in bullet_sprites:
         bullet.rect = bullet.rect.move(d1,d2)
@@ -308,6 +323,10 @@ enemy_sprites.add(e1)
 
 e2 = Enemy1([500,500])
 enemy_sprites.add(e2)
+
+
+e3 = Enemy1([600,300])
+enemy_sprites.add(e3)
 
 while 1:
     pygame.time.Clock().tick(120)
