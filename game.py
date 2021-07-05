@@ -1,5 +1,5 @@
 import sys, pygame, random, math
-
+from pprint import pprint
 from pygame import mouse
 from pygame.constants import BUTTON_LEFT, MOUSEBUTTONDOWN
 from pygame.key import get_pressed
@@ -18,6 +18,8 @@ bullet_sprites = pygame.sprite.Group()
 enemy_sprites = pygame.sprite.Group()
 sword_sprite = pygame.sprite.Group()
 
+map = [["0"]*9 for i in range(9)]
+
 def rot_center(image, rect, angle):
     rot_image = pygame.transform.rotate(image, angle)
     rot_rect = rot_image.get_rect(center=rect.center)
@@ -33,7 +35,7 @@ class MainCharacter(pygame.sprite.Sprite):
         colorImage.fill((0,0,0))
         self.image.blit(colorImage, (0,0))
 
-        self.rect.center = (683,384)
+        self.rect.center = (5500,5500)
 
 class Bullet(pygame.sprite.Sprite):
     facing = [0,0]
@@ -309,10 +311,48 @@ def generate_room(a,b,c,d):
         w = Wall([c*50,i*50])
         wall_sprites.add(w)
 
+def adjacent(a, b):
+    re = []
+    if (a + 1 < 9) and (map[a+1][b] =="0"): 
+        tup = [a+1,b]
+        re.append(tup)
+    if (a - 1 >= 0) and (map[a-1][b] =="0"): 
+        tup = [a-1,b]
+        re.append(tup)
+    if (b + 1 < 9) and (map[a][b+1] =="0"): 
+        tup = [a,b+1]
+        re.append(tup)
+    if (b - 1 >= 0) and (map[a][b-1] =="0"):
+        tup = [a,b-1]
+        re.append(tup)
+    return re
+
+def random_map():
+    map[4][4] = "S"
+    for i in range(5):
+        empty_list = []
+        for j in range(9):
+            for k in range(9):
+                if (map[j][k] != "0"):
+                    empty_list.append(adjacent(j,k))
+        temp = []
+        while (temp == []):
+            temp = random.choice(empty_list)
+        temp1 = random.choice(temp)
+        map[int(temp1[0])][int(temp1[1])] = "R"
+    pprint(map)
+
+def generate_map():
+    for i in range(9):
+        for j in range(9):
+            if (map[i][j] != "0"):
+                generate_room(25*j,25*i,25*j+20,25*i+20)
+               
+
+
 main = MainCharacter()
 main_sprite.add(main)
 
-generate_room(0,0,25,25)
 w1 = Wall([600,600])
 w2 = Wall([650,600])
 wall_sprites.add(w1)
@@ -324,9 +364,18 @@ enemy_sprites.add(e1)
 e2 = Enemy1([500,500])
 enemy_sprites.add(e2)
 
+e4 = Enemy1([600,700])
+enemy_sprites.add(e4)
+
+e5 = Enemy1([250,500])
+enemy_sprites.add(e5)
 
 e3 = Enemy1([600,300])
 enemy_sprites.add(e3)
+random_map()
+generate_map()
+
+
 
 while 1:
     pygame.time.Clock().tick(120)
