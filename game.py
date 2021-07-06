@@ -411,9 +411,40 @@ def random_path():
         to_be_addded_path = random.choice(addable_paths)
         print(to_be_addded_path.get()[0],to_be_addded_path.get()[1],to_be_addded_path.get()[2],to_be_addded_path.get()[3])
         paths.append(to_be_addded_path)
-        
+
+def remove_wall_at(a,b):
+    for wall in wall_sprites:
+        if wall.rect.center == (a*50, b*50):
+            wall.kill()
+
 def generate_path():
-    a = 1
+
+    for p in paths:
+        pos = p.get()
+
+        if (pos[0] == pos[2]):
+            if (pos[1] < pos[3]):
+                generate_room(pos[1]*25 + 20,pos[0]*25 + 12, pos[3]*25,pos[2]*25 + 8)
+                for i in range(pos[0]*25 + 9, pos[0]*25 + 12):
+                    remove_wall_at(pos[1]*25 + 20, i)
+                    remove_wall_at(pos[3]*25, i)
+                
+            else:
+                generate_room(pos[3]*25 + 20,pos[2]*25 + 12, pos[1]*25,pos[0]*25 + 8)
+                for i in range(pos[0]*25 + 9, pos[0]*25 + 12):
+                    remove_wall_at(pos[3]*25 + 20, i)
+                    remove_wall_at(pos[1]*25, i)
+        else:
+            if (pos[0] < pos[2]):
+                generate_room(pos[1]*25 + 12,pos[0]*25 + 20, pos[3]*25 + 8,pos[2]*25)
+                for i in range(pos[1]*25 + 9, pos[1]*25 + 12):
+                    remove_wall_at(i, pos[0]*25 + 20)
+                    remove_wall_at(i, pos[2]*25)
+            else:
+                generate_room(pos[3]*25 + 12,pos[2]*25 + 20, pos[1]*25 + 8,pos[0]*25)
+                for i in range(pos[1]*25 + 9, pos[1]*25 + 12):
+                    remove_wall_at(i, pos[2]*25 + 20)
+                    remove_wall_at(i, pos[0]*25)
 
 main = MainCharacter()
 main_sprite.add(main)
