@@ -19,6 +19,8 @@ enemy_sprites = pygame.sprite.Group()
 sword_sprite = pygame.sprite.Group()
 
 map = [["0"]*9 for i in range(9)]
+islands = [[0]*9 for i in range(9)]
+paths = []
 
 def rot_center(image, rect, angle):
     rot_image = pygame.transform.rotate(image, angle)
@@ -169,6 +171,15 @@ class Enemy1(pygame.sprite.Sprite):
         self.image.blit(colorImage, (0,0))
         if (self.health <= 0):
             self.kill()
+
+class Pathh:
+    def __init__(self,a,b,c,d):
+        self.x1 = a
+        self.y1 = b
+        self.x2 = c
+        self.y2 = d
+    def get(self):
+        return [self.x1,self.y1,self.x2,self.y2]
 
 def slash():
     t = pygame.time.get_ticks()
@@ -327,6 +338,22 @@ def adjacent(a, b):
         re.append(tup)
     return re
 
+def adjacent_nonzero(a, b):
+    re = []
+    if (a + 1 < 9) and (islands[a+1][b] !=0): 
+        tup = [a+1,b]
+        re.append(tup)
+    if (a - 1 >= 0) and (islands[a-1][b] !=0): 
+        tup = [a-1,b]
+        re.append(tup)
+    if (b + 1 < 9) and (islands[a][b+1] !=0): 
+        tup = [a,b+1]
+        re.append(tup)
+    if (b - 1 >= 0) and (islands[a][b-1] !=0):
+        tup = [a,b-1]
+        re.append(tup)
+    return re
+
 def random_map():
     map[4][4] = "S"
     for i in range(5):
@@ -347,16 +374,49 @@ def generate_map():
         for j in range(9):
             if (map[i][j] != "0"):
                 generate_room(25*j,25*i,25*j+20,25*i+20)
-               
 
+def update_islands():
+    for k in paths:
+        p = k.get()
+        smaller = min(int(islands[p[0]][p[1]]),int(islands[p[2]][p[3]]))
+        larger = max(int(islands[p[0]][p[1]]),int(islands[p[2]][p[3]]))
+        if (smaller != larger):
+            for i in range(9):
+                for j in range(9):
+                    if (islands[i][j] == larger):
+                        islands[i][j] = smaller
+    pprint(islands)
+
+def random_path():
+    k = 1
+    for i in range(9):
+        for j in range(9):
+            if (map[i][j] != "0"):
+                islands[i][j] = k
+                k+=1
+    
+    while True:
+        update_islands()
+        addable_paths = []
+        for i in range(9):
+            for j in range(9):
+                if (map[i][j] != "0"):
+                    adj = adjacent_nonzero(i,j)
+                    for pos in adj:
+                        if islands[i][j] != islands[pos[0]][pos[1]]:
+                            p = Pathh(i,j,pos[0],pos[1])
+                            addable_paths.append(p)
+        if (len(addable_paths)==0):
+            break
+        to_be_addded_path = random.choice(addable_paths)
+        print(to_be_addded_path.get()[0],to_be_addded_path.get()[1],to_be_addded_path.get()[2],to_be_addded_path.get()[3])
+        paths.append(to_be_addded_path)
+        
+def generate_path():
+    a = 1
 
 main = MainCharacter()
 main_sprite.add(main)
-
-w1 = Wall([600,600])
-w2 = Wall([650,600])
-wall_sprites.add(w1)
-wall_sprites.add(w2)
 
 e1 = Enemy1([300,300])
 enemy_sprites.add(e1)
@@ -372,10 +432,11 @@ enemy_sprites.add(e5)
 
 e3 = Enemy1([600,300])
 enemy_sprites.add(e3)
+
 random_map()
 generate_map()
-
-
+random_path()
+generate_path()
 
 while 1:
     pygame.time.Clock().tick(120)
