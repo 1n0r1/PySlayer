@@ -1,4 +1,5 @@
 import sys, pygame, random, math
+from pygame import freetype
 from pprint import pprint
 from pygame import mouse
 from pygame.constants import BUTTON_LEFT, MOUSEBUTTONDOWN
@@ -9,6 +10,7 @@ size = width, height = 1366, 768
 screen = pygame.display.set_mode(size)
 speed = [0,0]
 shooting = False
+game_over = False
 last_shoot = pygame.time.get_ticks()
 last_slash = pygame.time.get_ticks()
 
@@ -17,6 +19,9 @@ wall_sprites = pygame.sprite.Group()
 bullet_sprites = pygame.sprite.Group()
 enemy_sprites = pygame.sprite.Group()
 sword_sprite = pygame.sprite.Group()
+pygame.font.init()
+
+font = pygame.freetype.SysFont("comicsansms", 50) 
 
 map = [["0" for i in range(9)] for i in range(9)]
 islands = [[0 for i in range(9)] for i in range(9)]
@@ -31,6 +36,7 @@ def rot_center(image, rect, angle):
     return rot_image,rot_rect
 
 class MainCharacter(pygame.sprite.Sprite):
+    health = 10
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load("mc.png")
@@ -41,6 +47,10 @@ class MainCharacter(pygame.sprite.Sprite):
         self.image.blit(colorImage, (0,0))
 
         self.rect.center = (5500,5500)
+    def hit(self, a):
+        self.health -= a
+        if self.health < 1:
+            gameover()
 
 class Bullet(pygame.sprite.Sprite):
     facing = [0,0]
@@ -65,6 +75,29 @@ class Bullet(pygame.sprite.Sprite):
             if (self.rect.colliderect(e.rect)):
                 e.hit(1)
                 self.kill()
+
+class EBullet(pygame.sprite.Sprite):
+    facing = [0,0]
+    def __init__(self, color, pos, face):
+        super().__init__() 
+        self.image = pygame.image.load("bullet.png")
+        self.image = pygame.transform.scale(self.image, (25, 25))
+        self.rect = self.image.get_rect()
+
+        colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
+        colorImage.fill(color)
+        self.image.blit(colorImage, (0,0), special_flags = pygame.BLEND_MULT)
+
+        self.rect.center = pos
+        self.facing = face
+    def update(self):
+        self.rect = self.rect.move(self.facing)
+        for wall in wall_sprites:
+            if (self.rect.colliderect(wall.rect)):
+                self.kill()
+        if (self.rect.colliderect(main.rect)):
+            main.hit(1)
+            self.kill()
 
 class Wall(pygame.sprite.Sprite):
     def __init__(self, pos):
@@ -106,6 +139,7 @@ class Sword(pygame.sprite.Sprite):
 class Enemy1(pygame.sprite.Sprite):
     health = 0
     last_hit = 0
+    last_shoot = 0
     def __init__(self, pos):
         self.health = 10
         pygame.sprite.Sprite.__init__(self)
@@ -120,7 +154,6 @@ class Enemy1(pygame.sprite.Sprite):
         self.type = "enemy"
     
     def move(self, aa, bb):
-
         inc = 0.0
         if (aa > 0):
             inc = 1
@@ -170,7 +203,14 @@ class Enemy1(pygame.sprite.Sprite):
                 colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
                 colorImage.fill((150,150,150))
                 self.image.blit(colorImage, (0,0))
-
+        aa = 5*a/(a**2 + b**2)**(1/2)
+        bb = 5*b/(a**2 + b**2)**(1/2)
+        t = pygame.time.get_ticks()
+        if (t - self.last_shoot > 2000):
+            self.last_shoot = pygame.time.get_ticks()
+            ebullet = EBullet((255,0,0),self.rect.center, (aa,bb))
+            bullet_sprites.add(ebullet)
+    
     def hit(self, a):
         self.last_hit = pygame.time.get_ticks()
         self.health -= a
@@ -192,7 +232,18 @@ class Pathh:
     def get(self):
         return [self.x1,self.y1,self.x2,self.y2]
 
+def gameover():
+    for e in enemy_sprites:
+        e.kill()
+    for b in bullet_sprites:
+        b.kill()
+    main.kill()
+    global game_over
+    game_over = True
+
 def slash():
+    if (game_over):
+        return
     t = pygame.time.get_ticks()
     global last_slash
     if (t - last_slash > 500):
@@ -208,10 +259,16 @@ def slash():
             dis = [e.rect.center[1] - main.rect.center[1], e.rect.center[0] - main.rect.center[0]]
             angle_enemy = -math.atan2(dis[0], dis[1])/math.pi*180
             dist = (dis[0]**2 + dis[1]**2)**(1/2)
-            if abs(angle_enemy -80 - k ) <80 and dist<150:
+            if abs(angle_enemy - k - 80) < 80 and dist<150:
                 e.hit(3)
-                
+            elif abs(angle_enemy - k +360 - 80) < 80 and dist<150:
+                e.hit(3)
+            elif abs(angle_enemy - k - 360 - 80) < 80 and dist<150:
+                e.hit(3)
+
 def shoot():
+    if (game_over):
+        return
     t = pygame.time.get_ticks()
     global last_shoot
     if (t - last_shoot > 200):
@@ -238,6 +295,8 @@ def handle_event():
             slash()
 
 def handle_movement():
+    if (game_over):
+        return
     key = pygame.key.get_pressed()
     if (key[pygame.K_a]):
         if (speed[0] > -10):
@@ -318,6 +377,11 @@ def refresh():
         screen.blit(s.surf, s.rect)
     main_sprite.draw(screen)
     enemy_sprites.draw(screen)
+    if (main.health > 0):
+        health = "Health: " + str(main.health)
+        drawText(health, (0,0), (0,0,0))
+    else:
+        drawText("Game Over", (600,340), (0,0,0))
     pygame.display.flip()
 
 def generate_room(a,b,c,d):
@@ -521,6 +585,12 @@ def current_in_room():
     rey = int(yy/25/50)
     return (rey, rex)
 
+def drawText(text, pos, color):
+    text_rect = font.get_rect(text, size = 50)
+    text_rect.left = pos[0]
+    text_rect.top = pos[1]
+    font.render_to(screen, text_rect, text, color, size = 50)  
+
 main = MainCharacter()
 main_sprite.add(main)
 
@@ -537,7 +607,6 @@ while 1:
         visited[posx][posy] = 1
         print("activated", posx,posy)
         activate_stuffs_in_room(posx,posy)
-
 
     refresh()
     handle_event()
