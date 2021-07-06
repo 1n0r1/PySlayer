@@ -165,12 +165,18 @@ class Enemy1(pygame.sprite.Sprite):
             for wall in wall_sprites:
                 if (self.rect.colliderect(wall.rect)):
                     self.rect.center = prepos
+                    break
             for e in enemy_sprites:
-                if (e != self and self.rect.colliderect(e.rect)):
+                if (e != self and self.rect.colliderect(e.rect) and e.type =="enemy"):
                     self.rect.center = prepos
                     e.move(inc,0)
+                    break
+                elif (e != self and self.rect.colliderect(e.rect) and e.type =="enemy2"):
+                    self.rect.center = prepos
+                    break
             if (self.rect.colliderect(main.rect)):
                 self.rect.center = prepos
+                break
         inc = 0.0
         if (bb > 0):
             inc = 1
@@ -182,27 +188,33 @@ class Enemy1(pygame.sprite.Sprite):
             for wall in wall_sprites:
                 if (self.rect.colliderect(wall.rect)):
                     self.rect.center = prepos
+                    break
             for e in enemy_sprites:
-                if (e != self and self.rect.colliderect(e.rect)):
+                if (e != self and self.rect.colliderect(e.rect) and e.type =="enemy"):
                     self.rect.center = prepos
                     e.move(0,inc)
+                    break
+                elif (e != self and self.rect.colliderect(e.rect) and e.type =="enemy2"):
+                    self.rect.center = prepos
+                    break
             if (self.rect.colliderect(main.rect)):
                 self.rect.center = prepos
+                break
     
     def update(self):
         a = main.rect.center[0] - self.rect.center[0]
         b = main.rect.center[1] - self.rect.center[1]
         
         if ((a**2 + b**2) != 0):
-            aa = a*3 / (a**2 + b**2)**(1/2)
-            bb = b*3 / (a**2 + b**2)**(1/2)
+            aa = a*2 / (a**2 + b**2)**(1/2)
+            bb = b*2 / (a**2 + b**2)**(1/2)
             self.move(aa,bb)
 
-            t = pygame.time.get_ticks()
-            if (t - self.last_hit >= 50):
-                colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
-                colorImage.fill((150,150,150))
-                self.image.blit(colorImage, (0,0))
+        t = pygame.time.get_ticks()
+        if (t - self.last_hit >= 50):
+            colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
+            colorImage.fill((150,150,150))
+            self.image.blit(colorImage, (0,0))
         aa = 5*a/(a**2 + b**2)**(1/2)
         bb = 5*b/(a**2 + b**2)**(1/2)
         t = pygame.time.get_ticks()
@@ -211,6 +223,71 @@ class Enemy1(pygame.sprite.Sprite):
             ebullet = EBullet((255,0,0),self.rect.center, (aa,bb))
             bullet_sprites.add(ebullet)
     
+    def hit(self, a):
+        self.last_hit = pygame.time.get_ticks()
+        self.health -= a
+        colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
+        colorImage.fill((255,0,0))
+        self.image.blit(colorImage, (0,0))
+        if (self.health <= 0):
+            self.kill()
+
+    def displace_teleport(self,a,b):
+        self.rect = self.rect.move([a,b])
+
+class Enemy2(pygame.sprite.Sprite):
+    health = 0
+    last_hit = 0
+    last_spawn = 0
+
+    def __init__(self, pos):
+        self.health = 10
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load("mc.png")
+        self.rect = self.image.get_rect()
+        
+        colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
+        colorImage.fill((255,153,51))
+        self.image.blit(colorImage, (0,0))
+
+        self.rect.center = pos
+        self.type = "enemy2"
+    
+    def check_available(self,r):
+        for w in wall_sprites:
+            if r.colliderect(w.rect):
+                return False
+        for e in enemy_sprites:
+            if r.colliderect(e.rect):
+                return False
+        if r.colliderect(main.rect):
+            return False
+        return True
+
+    def spawn(self):
+        x = self.rect.center[0]
+        y = self.rect.center[1]
+        elist = []
+        elist.append(Enemy1((x+50,y)))
+        elist.append(Enemy1((x-50,y)))
+        elist.append(Enemy1((x,y+50)))
+        elist.append(Enemy1((x,y-50)))
+        random.shuffle(elist)
+
+        for e in elist:
+            if self.check_available(e.rect):
+                enemy_sprites.add(e)
+                break
+
+    def update(self):
+        t = pygame.time.get_ticks()
+        if (t - self.last_hit >= 50):
+            colorImage = pygame.Surface(self.image.get_size()).convert_alpha()
+            colorImage.fill((255,153,51))
+            self.image.blit(colorImage, (0,0))
+        if (t - self.last_spawn >= 5000):
+            self.spawn()
+            self.last_spawn = pygame.time.get_ticks()
     def hit(self, a):
         self.last_hit = pygame.time.get_ticks()
         self.health -= a
@@ -330,11 +407,15 @@ def handle_movement():
         for wall in wall_sprites:
             if (main.rect.colliderect(wall.rect)):
                 main.rect.center = prepos
+                break
         for e in enemy_sprites:
-            if (main.rect.colliderect(e.rect)):
+            if (main.rect.colliderect(e.rect) and e.type == "enemy"):
                 main.rect.center = prepos
                 e.move(speed[0],0)
-
+                break
+            elif(main.rect.colliderect(e.rect) and e.type == "enemy2"):
+                main.rect.center = prepos
+                break
     inc = 0.0
     if (speed[1] > 0):
         inc = 1
@@ -346,10 +427,15 @@ def handle_movement():
         for wall in wall_sprites:
             if (main.rect.colliderect(wall.rect)):
                 main.rect.center = prepos
+                break
         for e in enemy_sprites:
-            if (main.rect.colliderect(e.rect)):
+            if (main.rect.colliderect(e.rect) and e.type == "enemy"):
                 main.rect.center = prepos
                 e.move(0,speed[1])
+                break
+            elif(main.rect.colliderect(e.rect) and e.type == "enemy2"):
+                main.rect.center = prepos
+                break
 
 def refresh():
     screen.fill((255, 255, 255))
@@ -545,6 +631,13 @@ def random_stuffs_in_room():
                 re[x][y] = 2
                 re[x][y+1] = 2
                 break
+    for i in range(2):
+        while(True):
+            x = random.randrange(17) + 1
+            y = random.randrange(17) + 1
+            if (re[x][y] == 0):
+                re[x][y] = 3
+                break
     return re
 
 def generate_stuffs_in_room(a, xx, yy):
@@ -557,6 +650,9 @@ def generate_stuffs_in_room(a, xx, yy):
             if (a[i][j] == 2):
                 w = Wall((25*50*yy + (j+1)*50, 25*50*xx + (i+1)*50))
                 wall_sprites.add(w)
+            if (a[i][j] == 3):
+                e = Enemy2((25*50*yy + (j+1)*50, 25*50*xx + (i+1)*50))
+                room_sprites[xx][yy].add(e)
 
 def random_generate():
     random_map()
@@ -574,7 +670,7 @@ def activate_stuffs_in_room(xx,yy):
         if s.type == "wall":
             s.displace_teleport(camera[0],camera[1])
             wall_sprites.add(s)
-        elif s.type =="enemy":
+        else:
             s.displace_teleport(camera[0],camera[1])
             enemy_sprites.add(s)
 
