@@ -492,7 +492,7 @@ def generate_stuffs_in_room(a, xx, yy):
                 room_sprites[xx][yy].add(e)
             if (a[i][j] == 2):
                 w = Wall((25*50*yy + (j+1)*50, 25*50*xx + (i+1)*50))
-                room_sprites[xx][yy].add(w)
+                wall_sprites.add(w)
 
 def random_generate():
     random_map()
