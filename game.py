@@ -608,7 +608,7 @@ def generate_path():
 
 def random_stuffs_in_room():
     re = [[0]*19 for i in range(19)]
-    for i in range(7):
+    for i in range(5):
         while(True):
             x = random.randrange(17) + 1
             y = random.randrange(17) + 1
