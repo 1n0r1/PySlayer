@@ -18,9 +18,12 @@ bullet_sprites = pygame.sprite.Group()
 enemy_sprites = pygame.sprite.Group()
 sword_sprite = pygame.sprite.Group()
 
-map = [["0"]*9 for i in range(9)]
-islands = [[0]*9 for i in range(9)]
+map = [["0" for i in range(9)] for i in range(9)]
+islands = [[0 for i in range(9)] for i in range(9)]
 paths = []
+room_sprites = [[pygame.sprite.Group() for i in range(9)] for i in range(9)]
+visited = [[0 for i in range(9)] for i in range(9)]
+camera = [0.0000,0.000]
 
 def rot_center(image, rect, angle):
     rot_image = pygame.transform.rotate(image, angle)
@@ -70,6 +73,10 @@ class Wall(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(self.image, (50, 50))
         self.rect = self.image.get_rect()
         self.rect.center = pos
+        self.type = "wall"
+
+    def displace_teleport(self,a,b):
+        self.rect = self.rect.move([a,b])
 
 class Sword(pygame.sprite.Sprite):
     original_image = pygame.image.load("Sword.png")
@@ -110,6 +117,7 @@ class Enemy1(pygame.sprite.Sprite):
         self.image.blit(colorImage, (0,0))
 
         self.rect.center = pos
+        self.type = "enemy"
     
     def move(self, aa, bb):
 
@@ -171,6 +179,9 @@ class Enemy1(pygame.sprite.Sprite):
         self.image.blit(colorImage, (0,0))
         if (self.health <= 0):
             self.kill()
+
+    def displace_teleport(self,a,b):
+        self.rect = self.rect.move([a,b])
 
 class Pathh:
     def __init__(self,a,b,c,d):
@@ -285,8 +296,8 @@ def refresh():
     screen.fill((255, 255, 255))
     d1 = 683 - main.rect.center[0] 
     d2 = 384 - main.rect.center[1] 
-    d1 /= 5
-    d2/= 5
+    d1 = int(d1/5)
+    d2 = int(d2/5)
 
     for bullet in bullet_sprites:
         bullet.rect = bullet.rect.move(d1,d2)
@@ -296,7 +307,8 @@ def refresh():
         e.rect = e.rect.move(d1,d2)
     for s in sword_sprite:
         s.rect = s.rect.move(d1,d2)
-
+    camera[0] += d1
+    camera[1] += d2
     main.rect = main.rect.move(d1,d2)
 
     bullet_sprites.draw(screen)
@@ -444,37 +456,27 @@ def generate_path():
                     remove_wall_at(i, pos[2]*25 + 20)
                     remove_wall_at(i, pos[0]*25)
 
-def random_generate():
-    random_map()
-    generate_map()
-    random_path()
-    generate_path()
-    for i in range(9):
-        for j in range(9):
-            if (map[i][j] =="R"):
-                generate_stuffs_in_room(random_stuffs_in_room(),i,j)
-
 def random_stuffs_in_room():
     re = [[0]*19 for i in range(19)]
     for i in range(7):
         while(True):
-            x = random.randrange(19)
-            y = random.randrange(19)
+            x = random.randrange(17) + 1
+            y = random.randrange(17) + 1
             if (re[x][y] == 0):
                 re[x][y] = 1
                 break
     for i in range(3):
         while(True):
-            x = random.randrange(19)
-            y = random.randrange(19)
+            x = random.randrange(17) + 1
+            y = random.randrange(17) + 1
             if (re[x][y] == 0 and x+1 < 19 and re[x+1][y] == 0):
                 re[x][y] = 2
                 re[x+1][y] = 2
                 break
     for i in range(3):
         while(True):
-            x = random.randrange(19)
-            y = random.randrange(19)
+            x = random.randrange(17) + 1
+            y = random.randrange(17) + 1
             if (re[x][y] == 0 and y+1 < 19 and re[x][y+1] == 0):
                 re[x][y] = 2
                 re[x][y+1] = 2
@@ -487,10 +489,37 @@ def generate_stuffs_in_room(a, xx, yy):
         for j in range(19):
             if (a[i][j] == 1):
                 e = Enemy1((25*50*yy + (j+1)*50, 25*50*xx + (i+1)*50))
-                enemy_sprites.add(e)
+                room_sprites[xx][yy].add(e)
             if (a[i][j] == 2):
                 w = Wall((25*50*yy + (j+1)*50, 25*50*xx + (i+1)*50))
-                wall_sprites.add(w)
+                room_sprites[xx][yy].add(w)
+
+def random_generate():
+    random_map()
+    generate_map()
+    random_path()
+    generate_path()
+    for i in range(9):
+        for j in range(9):
+            if (map[i][j] =="R"):
+                generate_stuffs_in_room(random_stuffs_in_room(),i,j)
+
+def activate_stuffs_in_room(xx,yy):
+    sprites = room_sprites[xx][yy]
+    for s in sprites:
+        if s.type == "wall":
+            s.displace_teleport(camera[0],camera[1])
+            wall_sprites.add(s)
+        elif s.type =="enemy":
+            s.displace_teleport(camera[0],camera[1])
+            enemy_sprites.add(s)
+
+def current_in_room():
+    xx = main.rect.center[0] - camera[0]
+    yy = main.rect.center[1] - camera[1]
+    rex = int(xx/25/50)
+    rey = int(yy/25/50)
+    return (rey, rex)
 
 main = MainCharacter()
 main_sprite.add(main)
@@ -502,7 +531,14 @@ while 1:
 
     if (shooting == True):
         shoot()
-    
+    posx, posy = current_in_room()
+
+    if (visited[posx][posy] == 0 and map[posx][posy] == "R"):
+        visited[posx][posy] = 1
+        print("activated", posx,posy)
+        activate_stuffs_in_room(posx,posy)
+
+
     refresh()
     handle_event()
     handle_movement()
