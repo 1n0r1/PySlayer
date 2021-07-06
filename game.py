@@ -385,7 +385,6 @@ def update_islands():
                 for j in range(9):
                     if (islands[i][j] == larger):
                         islands[i][j] = smaller
-    pprint(islands)
 
 def random_path():
     k = 1
@@ -409,7 +408,6 @@ def random_path():
         if (len(addable_paths)==0):
             break
         to_be_addded_path = random.choice(addable_paths)
-        print(to_be_addded_path.get()[0],to_be_addded_path.get()[1],to_be_addded_path.get()[2],to_be_addded_path.get()[3])
         paths.append(to_be_addded_path)
 
 def remove_wall_at(a,b):
@@ -446,28 +444,58 @@ def generate_path():
                     remove_wall_at(i, pos[2]*25 + 20)
                     remove_wall_at(i, pos[0]*25)
 
+def random_generate():
+    random_map()
+    generate_map()
+    random_path()
+    generate_path()
+    for i in range(9):
+        for j in range(9):
+            if (map[i][j] =="R"):
+                generate_stuffs_in_room(random_stuffs_in_room(),i,j)
+
+def random_stuffs_in_room():
+    re = [[0]*19 for i in range(19)]
+    for i in range(7):
+        while(True):
+            x = random.randrange(19)
+            y = random.randrange(19)
+            if (re[x][y] == 0):
+                re[x][y] = 1
+                break
+    for i in range(3):
+        while(True):
+            x = random.randrange(19)
+            y = random.randrange(19)
+            if (re[x][y] == 0 and x+1 < 19 and re[x+1][y] == 0):
+                re[x][y] = 2
+                re[x+1][y] = 2
+                break
+    for i in range(3):
+        while(True):
+            x = random.randrange(19)
+            y = random.randrange(19)
+            if (re[x][y] == 0 and y+1 < 19 and re[x][y+1] == 0):
+                re[x][y] = 2
+                re[x][y+1] = 2
+                break
+    return re
+
+def generate_stuffs_in_room(a, xx, yy):
+    pprint(a)
+    for i in range(19):
+        for j in range(19):
+            if (a[i][j] == 1):
+                e = Enemy1((25*50*yy + (j+1)*50, 25*50*xx + (i+1)*50))
+                enemy_sprites.add(e)
+            if (a[i][j] == 2):
+                w = Wall((25*50*yy + (j+1)*50, 25*50*xx + (i+1)*50))
+                wall_sprites.add(w)
+
 main = MainCharacter()
 main_sprite.add(main)
 
-e1 = Enemy1([300,300])
-enemy_sprites.add(e1)
-
-e2 = Enemy1([500,500])
-enemy_sprites.add(e2)
-
-e4 = Enemy1([600,700])
-enemy_sprites.add(e4)
-
-e5 = Enemy1([250,500])
-enemy_sprites.add(e5)
-
-e3 = Enemy1([600,300])
-enemy_sprites.add(e3)
-
-random_map()
-generate_map()
-random_path()
-generate_path()
+random_generate()
 
 while 1:
     pygame.time.Clock().tick(120)
