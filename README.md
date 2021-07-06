@@ -20,3 +20,4 @@ Right-click to use sword
 Left-click to shoot
 
 ## Gameplay:
+![](https://media.giphy.com/media/gKNeigNVByXz04XOgL/giphy.gif)
